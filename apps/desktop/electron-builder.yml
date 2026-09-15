@@ -1,0 +1,79 @@
+appId: com.mediasuite.desktop
+productName: MediaSuite
+copyright: Copyright © 2026 MediaSuite
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**
+  - package.json
+  - "!**/*.map"
+  - "!**/*.ts"
+
+# The renderer, main, and preload bundles are produced by electron-vite, so the
+# packaged app should not try to rebuild native modules during packaging.
+npmRebuild: false
+buildDependenciesFromSource: false
+
+asar: true
+
+extraResources:
+  - from: resources/bin
+    to: bin
+    filter:
+      - "**/*"
+  - from: resources/models
+    to: models
+    filter:
+      - "**/*"
+
+publish: null
+
+mac:
+  category: public.app-category.video
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Set to true in CI once APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
+  # are available so electron-builder can notarize the signed app.
+  notarize: false
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+
+dmg:
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+linux:
+  category: AudioVideo
+  maintainer: MediaSuite <support@mediasuite.app>
+  synopsis: Local-first media download and transcription
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64

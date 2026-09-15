@@ -1,0 +1,23 @@
+{
+  "name": "mediasuite",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first media download and transcription suite",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "turbo": "^2.10.12",
+    "typescript": "^5.9.3"
+  }
+}

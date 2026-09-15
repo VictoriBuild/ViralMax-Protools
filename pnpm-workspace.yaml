@@ -1,0 +1,14 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+allowBuilds:
+  core-js: false
+  electron-winstaller: false
+  esbuild: true
+  unrs-resolver: true
+
+onlyBuiltDependencies:
+  - electron
+  - esbuild
+  - unrs-resolver

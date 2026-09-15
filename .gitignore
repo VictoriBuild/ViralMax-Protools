@@ -47,6 +47,25 @@
 **/.pnpm-store/
 **/*.tsbuild*
 
+# Next.js / Turborepo / Electron
+**/.next/
+**/out/
+**/.turbo/
+**/dist/
+**/release/
+
+# Electron build resources (icons, entitlements) must be committed
+!apps/desktop/build/
+!apps/desktop/build/**
+
+# Bundled desktop tool binaries and models are fetched separately
+apps/desktop/resources/bin/*
+apps/desktop/resources/models/*
+!apps/desktop/resources/bin/.gitkeep
+!apps/desktop/resources/bin/placeholder.txt
+!apps/desktop/resources/models/.gitkeep
+!apps/desktop/resources/models/placeholder.txt
+
 # Python
 **/__pycache__/
 *.py[cod]
