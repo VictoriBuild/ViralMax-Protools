@@ -60,6 +60,55 @@ export const CLOUD_CAPABILITIES = [
   "Pay only for the sifts you run"
 ]
 
+export interface PlanFeature {
+  label: string
+  included: boolean
+}
+
+export interface PlanTier {
+  id: "free" | "pro"
+  name: string
+  priceLabel: string
+  tagline: string
+  cta: { label: string; href: string }
+  features: PlanFeature[]
+  highlighted?: boolean
+}
+
+export const PLAN_TIERS: PlanTier[] = [
+  {
+    id: "free",
+    name: "Free",
+    priceLabel: "$0",
+    tagline: "Local Gemini mining with your own API key.",
+    cta: { label: "Start free", href: "/account" },
+    features: [
+      { label: "Unlimited local downloads with yt-dlp", included: true },
+      { label: "Unlimited transcription with whisper.cpp", included: true },
+      { label: "Knowledge extraction and clip export", included: true },
+      { label: "Local Gemini using your personal API key", included: true },
+      { label: "Cloud Sifter credits", included: false },
+      { label: "Priority processing queue", included: false }
+    ]
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    priceLabel: "Pay as you go",
+    tagline: "Cloud Sifter with instant backend processing.",
+    cta: { label: "Buy credits", href: "/account#topup" },
+    highlighted: true,
+    features: [
+      { label: "Everything in Free", included: true },
+      { label: `Cloud Sifter (${CREDITS_PER_SIFT} credits per run)`, included: true },
+      { label: "Managed transcription, zero local setup", included: true },
+      { label: "Priority processing queue", included: true },
+      { label: "Paystack credit top-ups", included: true },
+      { label: "Priority email support", included: true }
+    ]
+  }
+]
+
 export function findCreditPack(id: string): CreditPack | undefined {
   return CREDIT_PACKS.find((pack) => pack.id === id)
 }

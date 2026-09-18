@@ -96,13 +96,10 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            platform: mac
             artifact: desktop-macos
           - os: windows-latest
-            platform: win
             artifact: desktop-windows
           - os: ubuntu-latest
-            platform: linux
             artifact: desktop-linux
     steps:
       - name: Checkout
@@ -122,11 +119,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Linux packaging dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot dpkg
+
       - name: Build desktop bundles
         run: pnpm --filter desktop build
 
       - name: Package desktop app
-        run: pnpm --filter desktop exec electron-builder --${{ matrix.platform }}
+        run: pnpm --filter desktop dist
         env:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
@@ -139,6 +142,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: apps/desktop/release/**
+          path: apps/desktop/dist/bundle/**
           if-no-files-found: warn
           retention-days: 14

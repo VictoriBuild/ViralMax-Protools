@@ -5,6 +5,7 @@ import {
   Cloud,
   Download,
   FileText,
+  KeyRound,
   Laptop,
   Scissors,
   ShieldCheck,
@@ -27,7 +28,7 @@ const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
   {
     icon: FileText,
     title: "Accurate transcripts",
-    description: "Run whisper.cpp locally for free, or let the managed cloud handle the heavy lifting."
+    description: "Run whisper.cpp locally for free, or let the managed Cloud Sifter handle the heavy lifting."
   },
   {
     icon: Brain,
@@ -36,8 +37,8 @@ const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
   },
   {
     icon: Scissors,
-    title: "Clip generation",
-    description: "Score every moment and export the highest-potential shorts with captions."
+    title: "Viral moment extraction",
+    description: "Score every moment and export the highest-potential shorts with burned-in captions."
   },
   {
     icon: ShieldCheck,
@@ -47,7 +48,7 @@ const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
   {
     icon: Zap,
     title: "Pay per sift",
-    description: `Cloud sifting costs ${CREDITS_PER_SIFT} credits per run. Top up only when you need the cloud.`
+    description: `Cloud Sifter costs ${CREDITS_PER_SIFT} credits per run. Top up only when you need the cloud.`
   }
 ]
 
@@ -72,18 +73,18 @@ export default function Home() {
                 Local-first, cloud when you want it
               </Badge>
               <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-                Mine ten hours of video into the clips that matter.
+                Automated Video Content Mining &amp; Viral Moment Extraction
               </h1>
               <p className="max-w-xl text-lg text-muted-foreground">
-                MediaSuite runs the full pipeline on your desktop: download, transcribe, analyze, and cut. Keep everything
-                private, then tap cloud sifting only when you need more horsepower.
+                MediaSuite runs the full pipeline: download, transcribe, analyze, and cut. Keep everything private with
+                Local Gemini, or burst into the Cloud Sifter when you need more horsepower.
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href="/account"
                   className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-7 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                 >
-                  Get started
+                  Get started free
                 </Link>
                 <Link
                   href="#pricing"
@@ -97,21 +98,21 @@ export default function Home() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Laptop className="size-4" />
-                  Run it however you like
+                  Two processing engines
                 </CardTitle>
-                <CardDescription>Same pipeline, two execution engines.</CardDescription>
+                <CardDescription>Same pipeline, you choose where the AI runs.</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-6">
                 <CapabilityList
-                  icon={Laptop}
-                  title="On your desktop"
-                  description="Included with the app, no per-minute fees."
+                  icon={KeyRound}
+                  title="Local Gemini"
+                  description="Free and privacy-focused, using your own Gemini API key."
                   items={LOCAL_CAPABILITIES}
                 />
                 <CapabilityList
                   icon={Cloud}
-                  title="In the cloud"
-                  description={`${CREDITS_PER_SIFT} credits per sift, no setup required.`}
+                  title="Cloud Sifter"
+                  description={`Instant backend processing, ${CREDITS_PER_SIFT} credits per run.`}
                   items={CLOUD_CAPABILITIES}
                 />
               </CardContent>
@@ -138,7 +139,65 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="how-it-works" className="border-y border-border/60 bg-muted/30">
+        <section id="engines" className="border-y border-border/60 bg-muted/30">
+          <div className="mx-auto w-full max-w-6xl px-6 py-20">
+            <SectionHeading
+              eyebrow="Dual processing model"
+              title="Local Gemini or Cloud Sifter"
+              description="Run everything on your own hardware with your personal API key, or offload heavy work to the managed backend."
+            />
+            <div className="mt-12 grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <KeyRound className="size-4" />
+                      Local Gemini
+                    </CardTitle>
+                    <Badge variant="success">Free</Badge>
+                  </div>
+                  <CardDescription>
+                    Privacy-focused. Bring your own Gemini API key and keep every file on your machine.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    {LOCAL_CAPABILITIES.map((item) => (
+                      <li key={item} className="flex gap-2 text-muted-foreground">
+                        <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-emerald-500" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+              <Card className="border-primary/50">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Cloud className="size-4" />
+                      Cloud Sifter
+                    </CardTitle>
+                    <Badge>{CREDITS_PER_SIFT} credits / run</Badge>
+                  </div>
+                  <CardDescription>Instant backend processing using your credit balance. No local setup required.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    {CLOUD_CAPABILITIES.map((item) => (
+                      <li key={item} className="flex gap-2 text-muted-foreground">
+                        <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-foreground/50" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="border-b border-border/60">
           <div className="mx-auto w-full max-w-6xl px-6 py-20">
             <SectionHeading
               eyebrow="How it works"
@@ -164,8 +223,8 @@ export default function Home() {
         <section id="pricing" className="mx-auto w-full max-w-6xl px-6 py-20">
           <SectionHeading
             eyebrow="Pricing"
-            title="Buy credits, not subscriptions"
-            description="Local processing is unlimited and free. Credits only cover cloud sifting when you want it."
+            title="Free to start, pay only for cloud sifting"
+            description="Local processing is unlimited and free. Pro credits are a one-time top-up processed by Paystack."
           />
           <div className="mt-12">
             <PricingCards />

@@ -7,7 +7,7 @@ export function supabaseBrowserConfigured(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 }
 
-export function getSupabaseBrowser(): SupabaseClient | null {
+export function createBrowserClient(): SupabaseClient | null {
   if (!supabaseBrowserConfigured()) {
     return null
   }
@@ -26,4 +26,8 @@ export function getSupabaseBrowser(): SupabaseClient | null {
     }
   )
   return cached
+}
+
+export function getSupabaseBrowser(): SupabaseClient | null {
+  return createBrowserClient()
 }

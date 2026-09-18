@@ -3,8 +3,8 @@ productName: MediaSuite
 copyright: Copyright © 2026 MediaSuite
 
 directories:
-  output: release
-  buildResources: build
+  output: dist/bundle
+  buildResources: resources
 
 files:
   - out/**
@@ -19,20 +19,19 @@ buildDependenciesFromSource: false
 
 asar: true
 
+# Platform tool binaries (yt-dlp, ffmpeg, whisper.cpp) and models live in
+# resources/ and are copied verbatim into the packaged app's resources folder.
 extraResources:
-  - from: resources/bin
-    to: bin
+  - from: resources
+    to: .
     filter:
       - "**/*"
-  - from: resources/models
-    to: models
-    filter:
-      - "**/*"
+      - "!*.gitkeep"
 
 publish: null
 
 mac:
-  category: public.app-category.video
+  category: public.app-category.utilities
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist

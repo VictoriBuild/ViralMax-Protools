@@ -3,15 +3,16 @@
 import { useCallback, useEffect, useState } from "react"
 import type { FormEvent } from "react"
 import type { Session } from "@supabase/supabase-js"
-import { Check, Copy, KeyRound, Loader2, LogOut, ShieldCheck } from "lucide-react"
+import { Check, Copy, KeyRound, Loader2, LogOut, Mail, ShieldCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
-import { capture, identifyUser, resetAnalytics } from "@/lib/analytics"
-import { CREDIT_PACKS, formatCredits, formatPrice } from "@/lib/pricing"
-import { getSupabaseBrowser, supabaseBrowserConfigured } from "@/lib/supabase/client"
+import { capture, identifyUser, resetAnalytics, trackCreditTopUp, trackLogin, trackSignup } from "@/lib/analytics"
+import { generatePaystackReference, openPaystackCheckout, paystackPublicConfigured } from "@/lib/paystack-inline"
+import { CREDIT_PACKS, findCreditPack, formatCredits, formatPrice } from "@/lib/pricing"
+import { createBrowserClient, supabaseBrowserConfigured } from "@/lib/supabase/browser"
 
 interface AccountSnapshot {
   balance: number
@@ -47,7 +48,7 @@ export function AccountPortal() {
   const email = session?.user.email ?? null
 
   useEffect(() => {
-    const client = getSupabaseBrowser()
+    const client = createBrowserClient()
     if (!client) {
       setReady(true)
       return
@@ -103,7 +104,7 @@ export function AccountPortal() {
 
   const handleAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const client = getSupabaseBrowser()
+    const client = createBrowserClient()
     if (!client) {
       return
     }
@@ -121,14 +122,43 @@ export function AccountPortal() {
       return
     }
     setPassword("")
-    capture(mode === "signup" ? "signup_submitted" : "login_submitted")
+    if (mode === "signup") {
+      trackSignup("password")
+    } else {
+      trackLogin("password")
+    }
     if (mode === "signup" && !data.session) {
       setNotice("Check your inbox to confirm your email, then sign in.")
     }
   }
 
+  const handleMagicLink = async () => {
+    const client = createBrowserClient()
+    if (!client) {
+      return
+    }
+    if (!formEmail) {
+      setAuthError("Enter your email address first.")
+      return
+    }
+    setBusy(true)
+    setAuthError(null)
+    setNotice(null)
+    const { error } = await client.auth.signInWithOtp({
+      email: formEmail,
+      options: { emailRedirectTo: `${window.location.origin}/account` }
+    })
+    setBusy(false)
+    if (error) {
+      setAuthError(error.message)
+      return
+    }
+    trackLogin("magic_link")
+    setNotice("Magic link sent. Check your inbox to finish signing in.")
+  }
+
   const handleSignOut = async () => {
-    const client = getSupabaseBrowser()
+    const client = createBrowserClient()
     await client?.auth.signOut()
     resetAnalytics()
     setIssuedToken(null)
@@ -138,13 +168,45 @@ export function AccountPortal() {
   }
 
   const handleCheckout = async (packId: string) => {
-    if (!accessToken) {
+    const pack = findCreditPack(packId)
+    if (!pack) {
+      return
+    }
+    if (!accessToken || !session) {
       setNotice("Sign in to buy credits.")
       return
     }
+    const checkoutEmail = session.user.email ?? email ?? formEmail
     setCheckoutPackId(packId)
     setNotice(null)
-    capture("checkout_started", { packId })
+    trackCreditTopUp({ packId, credits: pack.credits })
+
+    if (paystackPublicConfigured() && checkoutEmail) {
+      const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY as string
+      const reference = generatePaystackReference()
+      const opened = await openPaystackCheckout({
+        key: publicKey,
+        email: checkoutEmail,
+        amountMinor: pack.priceMinor,
+        currency: pack.currency,
+        reference,
+        metadata: { user_id: session.user.id, pack_id: pack.id, credits: pack.credits },
+        onSuccess: (confirmedReference) => {
+          capture("credit_top_up_succeeded", { packId, reference: confirmedReference })
+          setNotice("Payment received. Credits land as soon as Paystack confirms the charge.")
+          if (accessToken) {
+            void refreshAccount(accessToken)
+          }
+        },
+        onCancel: () => setNotice("Checkout cancelled. No charge was made.")
+      }).catch(() => false)
+      if (opened) {
+        setCheckoutPackId(null)
+        return
+      }
+      setNotice("Inline checkout unavailable. Falling back to secure redirect.")
+    }
+
     try {
       const response = await fetch("/api/billing/checkout", {
         method: "POST",
@@ -281,7 +343,7 @@ export function AccountPortal() {
             <CardTitle className="mt-3">{mode === "signup" ? "Create your account" : "Welcome back"}</CardTitle>
             <CardDescription>
               {mode === "signup"
-                ? "Use an email and password to unlock cloud sifting and desktop tokens."
+                ? "Use an email and password, or a magic link, to unlock Cloud Sifter credits."
                 : "Sign in to manage credits and your desktop connection."}
             </CardDescription>
           </CardHeader>
@@ -319,10 +381,14 @@ export function AccountPortal() {
               {authError ? <p className="text-sm text-destructive">{authError}</p> : null}
               {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex-col gap-3">
               <Button type="submit" className="w-full" disabled={busy}>
                 {busy ? <Loader2 className="size-4 animate-spin" /> : null}
                 {mode === "signup" ? "Create account" : "Sign in"}
+              </Button>
+              <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={handleMagicLink}>
+                <Mail className="size-4" />
+                Send magic link
               </Button>
             </CardFooter>
           </form>
@@ -363,19 +429,17 @@ export function AccountPortal() {
         <Card>
           <CardHeader>
             <CardTitle>Credit balance</CardTitle>
-            <CardDescription>Each cloud sift costs 3 credits.</CardDescription>
+            <CardDescription>Each Cloud Sifter run costs 3 credits.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-4xl font-semibold tracking-tight">{formatCredits(balance)}</p>
             <Progress value={usagePercent} />
             <p className="text-xs text-muted-foreground">
-              {snapshot?.updatedAt ? `Last updated ${new Date(snapshot.updatedAt).toLocaleString()}` : "No credits used yet."}
+              {snapshot?.updatedAt
+                ? `Last updated ${new Date(snapshot.updatedAt).toLocaleString()}`
+                : "No credits used yet."}
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => accessToken && void refreshAccount(accessToken)}
-            >
+            <Button variant="outline" size="sm" onClick={() => accessToken && void refreshAccount(accessToken)}>
               Refresh balance
             </Button>
           </CardContent>
@@ -385,9 +449,9 @@ export function AccountPortal() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <KeyRound className="size-4" />
-              Desktop connection
+              Desktop API token
             </CardTitle>
-            <CardDescription>Issue a token and paste it into the desktop app settings.</CardDescription>
+            <CardDescription>Generate a token and paste it into the desktop app settings.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {tokenStatus?.hasToken && !issuedToken ? (
@@ -425,10 +489,14 @@ export function AccountPortal() {
         </Card>
       </div>
 
-      <div>
+      <div id="topup">
         <div className="mb-4">
           <h2 className="text-lg font-semibold tracking-tight">Top up credits</h2>
-          <p className="text-sm text-muted-foreground">Purchases are processed securely by Paystack.</p>
+          <p className="text-sm text-muted-foreground">
+            {paystackPublicConfigured()
+              ? "Checkout opens securely in-page with your Paystack public key."
+              : "Purchases are processed securely by Paystack."}
+          </p>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
           {CREDIT_PACKS.map((pack) => (
