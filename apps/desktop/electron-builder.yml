@@ -6,7 +6,7 @@ directories:
   buildResources: resources
 
 files:
-  - dist/**/*
+  - out/**/*
   - node_modules/**/*
   - package.json
 
