@@ -9,7 +9,7 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",
-    "dist": "electron-builder",
+    "dist": "electron-builder --publish never",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux",
@@ -46,5 +46,9 @@
     "typescript": "^5.9.3",
     "vite": "^8.2.2"
   },
-  "homepage": "https://github.com/VictoriBuild/ViralMax-Protools"
+  "homepage": "https://github.com/VictoriBuild/ViralMax-Protools",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VictoriBuild/ViralMax-Protools.git"
+  }
 }
