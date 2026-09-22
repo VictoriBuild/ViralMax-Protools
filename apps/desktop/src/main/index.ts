@@ -24,20 +24,25 @@ function createWindow(): void {
   if (process.env.ELECTRON_RENDERER_URL) {
     void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
-    // Determine production static HTML path
-    const rendererPath = join(__dirname, "../renderer/index.html")
-    const webOutPath = join(__dirname, "../../web/out/index.html")
+    // Check primary compiled renderer location
+    const rendererHtml = join(__dirname, "../renderer/index.html")
+    const webOutHtml = join(__dirname, "../../web/out/index.html")
 
-    if (existsSync(rendererPath)) {
-      void mainWindow.loadFile(rendererPath)
-    } else if (existsSync(webOutPath)) {
-      void mainWindow.loadFile(webOutPath)
+    if (existsSync(rendererHtml)) {
+      void mainWindow.loadFile(rendererHtml)
+    } else if (existsSync(webOutHtml)) {
+      void mainWindow.loadFile(webOutHtml)
     } else {
-      // Fallback: If hosted on web/remote production URL
+      // Fallback if app serves web gateway directly
       const webUrl = process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000"
       void mainWindow.loadURL(webUrl)
     }
   }
+
+  // Handle failed loads to prevent silent white/black screens
+  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription) => {
+    console.error(`Failed to load UI (${errorCode}): ${errorDescription}`)
+  })
 }
 
 app.whenReady().then(async () => {
