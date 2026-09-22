@@ -1,4 +1,5 @@
 import { join } from "node:path"
+import { existsSync } from "node:fs"
 import { app, BrowserWindow } from "electron"
 import { registerIpcHandlers } from "./ipc/registry"
 import { hardenSession, secureWebContents } from "./security"
@@ -23,7 +24,19 @@ function createWindow(): void {
   if (process.env.ELECTRON_RENDERER_URL) {
     void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
-    void mainWindow.loadFile(join(__dirname, "../renderer/index.html"))
+    // Determine production static HTML path
+    const rendererPath = join(__dirname, "../renderer/index.html")
+    const webOutPath = join(__dirname, "../../web/out/index.html")
+
+    if (existsSync(rendererPath)) {
+      void mainWindow.loadFile(rendererPath)
+    } else if (existsSync(webOutPath)) {
+      void mainWindow.loadFile(webOutPath)
+    } else {
+      // Fallback: If hosted on web/remote production URL
+      const webUrl = process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000"
+      void mainWindow.loadURL(webUrl)
+    }
   }
 }
 
