@@ -1,46 +1,20 @@
-appId: com.mediasuite.desktop
-productName: MediaSuite
-copyright: Copyright © 2026 MediaSuite
+appId: com.viralmax.protools
+productName: ViralMax ProTools
 
 directories:
   output: dist/bundle
   buildResources: resources
 
 files:
-  - out/**
+  - dist/**/*
+  - node_modules/**/*
   - package.json
-  - "!**/*.map"
-  - "!**/*.ts"
 
-# The renderer, main, and preload bundles are produced by electron-vite, so the
-# packaged app should not try to rebuild native modules during packaging.
-npmRebuild: false
-buildDependenciesFromSource: false
-
-asar: true
-
-# Platform tool binaries (yt-dlp, ffmpeg, whisper.cpp) and models live in
-# resources/ and are copied verbatim into the packaged app's resources folder.
 extraResources:
-  - from: resources
-    to: .
-    filter:
-      - "**/*"
-      - "!*.gitkeep"
-
-publish: null
+  - from: resources/
+    to: ..
 
 mac:
-  identity: null
-  hardenedRuntime: false
-  category: public.app-category.utilities
-  hardenedRuntime: true
-  gatekeeperAssess: false
-  entitlements: build/entitlements.mac.plist
-  entitlementsInherit: build/entitlements.mac.plist
-  # Set to true in CI once APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
-  # are available so electron-builder can notarize the signed app.
-  notarize: false
   target:
     - target: dmg
       arch:
@@ -50,9 +24,12 @@ mac:
       arch:
         - x64
         - arm64
-
-dmg:
-  artifactName: "${productName}-${version}-${arch}.${ext}"
+  category: public.app-category.utilities
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  identity: null
 
 win:
   target:
@@ -60,17 +37,7 @@ win:
       arch:
         - x64
 
-nsis:
-  oneClick: false
-  perMachine: false
-  allowToChangeInstallationDirectory: true
-  createDesktopShortcut: true
-  createStartMenuShortcut: true
-
 linux:
-  category: AudioVideo
-  maintainer: MediaSuite <support@mediasuite.app>
-  synopsis: Local-first media download and transcription
   target:
     - target: AppImage
       arch:
@@ -78,3 +45,4 @@ linux:
     - target: deb
       arch:
         - x64
+  category: Utility
