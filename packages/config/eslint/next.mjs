@@ -5,7 +5,7 @@ import base from "./base.mjs"
 export default tseslint.config(
   ...base,
   {
-    files: ["**/*.{ts,tsx,mts,cts}"],
+    files: ["**/*.{js,mjs,cjs,ts,tsx,mts,cts}"],
     languageOptions: {
       globals: {
         ...globals.browser,
