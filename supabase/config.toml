@@ -15,8 +15,16 @@ enabled = true
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["http://localhost:3000"]
 
-[functions]
-enabled = true
+[functions.auth]
+verify_jwt = true
+
+[functions.billing]
+verify_jwt = true
+
+[functions.transcribe]
+verify_jwt = true
+
+[functions.uploads]
 verify_jwt = true
 
 [storage]
