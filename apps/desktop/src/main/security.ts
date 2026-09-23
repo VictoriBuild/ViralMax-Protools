@@ -1,5 +1,5 @@
 import type { WebContents } from "electron"
-import { session, shell } from "electron"
+import { app, session, shell } from "electron"
 
 function isSafeExternalUrl(rawUrl: string): boolean {
   try {
@@ -11,8 +11,11 @@ function isSafeExternalUrl(rawUrl: string): boolean {
 }
 
 function isAllowedNavigation(rawUrl: string, allowedOrigin: string | undefined): boolean {
+  if (rawUrl.startsWith("file://")) {
+    return true
+  }
   if (!allowedOrigin) {
-    return rawUrl.startsWith("file://")
+    return false
   }
   const normalized = allowedOrigin.endsWith("/") ? allowedOrigin : `${allowedOrigin}/`
   return rawUrl.startsWith(normalized) || rawUrl === allowedOrigin
@@ -30,6 +33,40 @@ export function secureWebContents(contents: WebContents, allowedOrigin: string |
     if (!isAllowedNavigation(url, allowedOrigin)) {
       event.preventDefault()
     }
+  })
+}
+
+export function applyContentSecurityPolicy(): void {
+  const packagedCsp = [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    "connect-src 'self' https:",
+    "media-src 'self' blob: file:",
+    "object-src 'none'",
+    "base-uri 'none'"
+  ].join("; ")
+
+  const devCsp = [
+    "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* ws://localhost:*",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    "connect-src 'self' http://localhost:* ws://localhost:* https:",
+    "media-src 'self' blob: file:"
+  ].join("; ")
+
+  const csp = app.isPackaged ? packagedCsp : devCsp
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [csp]
+      }
+    })
   })
 }
 

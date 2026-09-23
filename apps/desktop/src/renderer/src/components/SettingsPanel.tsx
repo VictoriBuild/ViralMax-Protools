@@ -6,6 +6,7 @@ import { Button } from "@renderer/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@renderer/components/ui/card"
 import { Input } from "@renderer/components/ui/input"
 import { Switch } from "@renderer/components/ui/switch"
+import { getDesktopApi } from "@renderer/lib/desktop-api"
 import { useAuthStore } from "@renderer/store/useAuthStore"
 import { useSettingsStore } from "@renderer/store/useSettingsStore"
 
@@ -61,7 +62,11 @@ export function SettingsPanel() {
   }
 
   const chooseWorkspace = async (): Promise<void> => {
-    const result = await window.api.dialogs.selectDirectory("Choose a workspace folder")
+    const api = getDesktopApi()
+    if (!api) {
+      return
+    }
+    const result = await api.dialogs.selectDirectory("Choose a workspace folder")
     if (result.ok && result.value.path) {
       await setWorkspacePath(result.value.path)
     }

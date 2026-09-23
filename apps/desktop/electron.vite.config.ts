@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react"
 import { defineConfig, externalizeDepsPlugin } from "electron-vite"
 
 const workspacePackages = ["@repo/shared", "@repo/pipeline", "@repo/ai"]
+const desktopRoot = resolve(__dirname)
 
 export default defineConfig({
   main: {
@@ -24,12 +25,25 @@ export default defineConfig({
     }
   },
   renderer: {
+    base: "./",
     resolve: {
       alias: {
         "@renderer": resolve("src/renderer/src"),
         "@repo/shared": resolve("../../packages/shared/src/index.ts")
       }
     },
-    plugins: [react()]
+    css: {
+      postcss: resolve(desktopRoot, "postcss.config.mjs")
+    },
+    plugins: [react()],
+    build: {
+      rollupOptions: {
+        output: {
+          assetFileNames: "assets/[name]-[hash][extname]",
+          chunkFileNames: "assets/[name]-[hash].js",
+          entryFileNames: "assets/[name]-[hash].js"
+        }
+      }
+    }
   }
 })

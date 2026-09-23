@@ -1,8 +1,23 @@
-import { join } from "node:path"
 import { existsSync } from "node:fs"
+import { join } from "node:path"
 import { app, BrowserWindow } from "electron"
 import { registerIpcHandlers } from "./ipc/registry"
-import { hardenSession, secureWebContents } from "./security"
+import { applyContentSecurityPolicy, hardenSession, secureWebContents } from "./security"
+
+function resolveRendererHtml(): string | null {
+  const candidates = [
+    join(__dirname, "../renderer/index.html"),
+    join(app.getAppPath(), "out/renderer/index.html"),
+    join(process.resourcesPath, "app.asar/out/renderer/index.html"),
+    join(process.resourcesPath, "app/out/renderer/index.html")
+  ]
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate
+    }
+  }
+  return null
+}
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -10,42 +25,59 @@ function createWindow(): void {
     height: 800,
     show: false,
     autoHideMenuBar: true,
+    backgroundColor: "#09090b",
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false
     }
   })
 
-  mainWindow.on("ready-to-show", () => mainWindow.show())
-  secureWebContents(mainWindow.webContents, process.env.ELECTRON_RENDERER_URL)
-
-  if (process.env.ELECTRON_RENDERER_URL) {
-    void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
-  } else {
-    // Check primary compiled renderer location
-    const rendererHtml = join(__dirname, "../renderer/index.html")
-    const webOutHtml = join(__dirname, "../../web/out/index.html")
-
-    if (existsSync(rendererHtml)) {
-      void mainWindow.loadFile(rendererHtml)
-    } else if (existsSync(webOutHtml)) {
-      void mainWindow.loadFile(webOutHtml)
-    } else {
-      // Fallback if app serves web gateway directly
-      const webUrl = process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000"
-      void mainWindow.loadURL(webUrl)
+  const reveal = (): void => {
+    if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      mainWindow.show()
     }
   }
+  mainWindow.once("ready-to-show", reveal)
+  setTimeout(reveal, 1500)
 
-  // Handle failed loads to prevent silent white/black screens
-  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription) => {
-    console.error(`Failed to load UI (${errorCode}): ${errorDescription}`)
+  const devServerUrl = process.env.ELECTRON_RENDERER_URL
+  secureWebContents(mainWindow.webContents, devServerUrl)
+
+  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`Failed to load UI (${errorCode}): ${errorDescription} url=${validatedURL}`)
   })
+
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    console.error(`Renderer process gone: ${details.reason}`)
+  })
+
+  if (devServerUrl) {
+    void mainWindow.loadURL(devServerUrl)
+    return
+  }
+
+  const rendererHtml = resolveRendererHtml()
+  if (!rendererHtml) {
+    console.error("Packaged renderer index.html was not found")
+    void mainWindow.loadURL(
+      "data:text/html;charset=utf-8," +
+        encodeURIComponent("<h1>ViralMax failed to locate UI assets</h1><p>out/renderer/index.html is missing.</p>")
+    )
+    return
+  }
+
+  void mainWindow.loadFile(rendererHtml)
 }
 
 app.whenReady().then(async () => {
+  if (process.platform === "win32") {
+    app.setAppUserModelId("com.viralmax.protools")
+  }
+  applyContentSecurityPolicy()
   hardenSession()
   await registerIpcHandlers()
   createWindow()

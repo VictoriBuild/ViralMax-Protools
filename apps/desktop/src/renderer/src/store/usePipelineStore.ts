@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import type { Engine, Job, NativeProgress, StageId, StageRunState, VideoSource } from "@repo/shared"
 import { STAGE_LABELS } from "@renderer/lib/constants"
+import { getDesktopApi } from "@renderer/lib/desktop-api"
 import { useSettingsStore } from "./useSettingsStore"
 
 export interface StageProgress {
@@ -78,9 +79,14 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
   error: null,
 
   start: async (source, engineOverride) => {
+    const api = getDesktopApi()
+    if (!api) {
+      set({ error: "Desktop bridge is unavailable" })
+      return false
+    }
     const engine = engineOverride ?? useSettingsStore.getState().settings?.defaultEngine ?? "local"
     set({ busy: true, error: null, stageProgress: {}, logs: [], nativeProgress: null })
-    const result = await window.api.job.create({ source, engine })
+    const result = await api.job.create({ source, engine })
     if (!result.ok) {
       set({ busy: false, error: result.message })
       return false
@@ -93,11 +99,12 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
   },
 
   cancelActive: async () => {
+    const api = getDesktopApi()
     const jobId = get().activeJobId
-    if (!jobId) {
+    if (!api || !jobId) {
       return
     }
-    const result = await window.api.job.cancel(jobId)
+    const result = await api.job.cancel(jobId)
     if (!result.ok) {
       set({ error: result.message })
     }
@@ -108,7 +115,11 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
   },
 
   bindEvents: () => {
-    const offStatus = window.api.events.onJobStatusChanged(({ status }) => {
+    const api = getDesktopApi()
+    if (!api) {
+      return () => undefined
+    }
+    const offStatus = api.events.onJobStatusChanged(({ status }) => {
       const { level, message } = statusLog(status)
       set((state) => {
         const isActive = state.activeJobId === null || state.activeJobId === status.id
@@ -121,7 +132,7 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
       })
     })
 
-    const offProgress = window.api.events.onPipelineProgress((payload) => {
+    const offProgress = api.events.onPipelineProgress((payload) => {
       const { activeJobId } = get()
       if (activeJobId && payload.jobId !== activeJobId) {
         return
@@ -144,11 +155,11 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
       })
     })
 
-    const offNative = window.api.events.onNativeProgress((payload) => {
+    const offNative = api.events.onNativeProgress((payload) => {
       set({ nativeProgress: payload })
     })
 
-    const offArtifact = window.api.events.onPipelineArtifact((payload) => {
+    const offArtifact = api.events.onPipelineArtifact((payload) => {
       set((state) => ({
         logs: appendLog(state.logs, "info", `Artifact produced: ${payload.artifact.path}`)
       }))

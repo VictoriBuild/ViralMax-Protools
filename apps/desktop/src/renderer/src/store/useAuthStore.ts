@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { getDesktopApi } from "@renderer/lib/desktop-api"
 
 interface AuthState {
   token: string | null
@@ -23,11 +24,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
 
   refresh: async () => {
+    const api = getDesktopApi()
+    if (!api) {
+      set({ loading: false, error: "Desktop bridge is unavailable" })
+      return
+    }
     set({ loading: true, error: null })
     try {
       const [balanceResult, entitlementResult] = await Promise.all([
-        window.api.billing.getBalance(),
-        window.api.billing.getEntitlement()
+        api.billing.getBalance(),
+        api.billing.getEntitlement()
       ])
       set({
         balance: balanceResult.ok ? balanceResult.value.balance : 0,

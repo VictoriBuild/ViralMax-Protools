@@ -1,19 +1,31 @@
 appId: com.viralmax.protools
 productName: ViralMax ProTools
+asar: true
+asarUnpack:
+  - out/renderer/**/*
+npmRebuild: false
+electronLanguages:
+  - en-US
 
 directories:
   output: dist/bundle
   buildResources: resources
 
 files:
-  - out/**/*
-  - ../web/out/**/*
-  - node_modules/**/*
+  - from: out
+    to: out
+    filter:
+      - "**/*"
   - package.json
 
+extraMetadata:
+  main: out/main/index.js
+
 extraResources:
-  - from: resources/
-    to: ..
+  - from: resources/bin
+    to: bin
+  - from: resources/models
+    to: models
 
 mac:
   target:
@@ -37,6 +49,13 @@ win:
     - target: nsis
       arch:
         - x64
+  artifactName: "${productName}-Setup-${version}.${ext}"
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
 
 linux:
   target:

@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import type { AppSettings, AppSettingsPatch, BinaryStatus, Engine, SpeechProvider, ToolPaths } from "@repo/shared"
 import { KEYCHAIN_GEMINI_ACCOUNT, KEYCHAIN_SERVICE } from "@renderer/lib/constants"
+import { getDesktopApi } from "@renderer/lib/desktop-api"
 
 interface SettingsState {
   settings: AppSettings | null
@@ -21,6 +22,10 @@ interface SettingsState {
   setWorkspacePath: (path: string | null) => Promise<void>
 }
 
+function missingBridgeError(): string {
+  return "Desktop bridge is unavailable"
+}
+
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: null,
   binaries: null,
@@ -30,11 +35,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   error: null,
 
   load: async () => {
+    const api = getDesktopApi()
+    if (!api) {
+      set({ loading: false, error: "Desktop bridge is unavailable" })
+      return
+    }
     set({ loading: true, error: null })
     try {
       const [settingsResult, keyResult] = await Promise.all([
-        window.api.settings.get(),
-        window.api.keychain.get(KEYCHAIN_SERVICE, KEYCHAIN_GEMINI_ACCOUNT)
+        api.settings.get(),
+        api.keychain.get(KEYCHAIN_SERVICE, KEYCHAIN_GEMINI_ACCOUNT)
       ])
       set({
         settings: settingsResult.ok ? settingsResult.value : get().settings,
@@ -47,8 +57,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   update: async (patch) => {
+    const api = getDesktopApi()
+    if (!api) {
+      set({ error: missingBridgeError() })
+      return
+    }
     set({ saving: true, error: null })
-    const result = await window.api.settings.set(patch)
+    const result = await api.settings.set(patch)
     if (result.ok) {
       set({ settings: result.value })
     } else {
@@ -58,7 +73,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   saveGeminiKey: async (key) => {
-    const result = await window.api.keychain.set(KEYCHAIN_SERVICE, KEYCHAIN_GEMINI_ACCOUNT, key)
+    const api = getDesktopApi()
+    if (!api) {
+      set({ error: missingBridgeError() })
+      return
+    }
+    const result = await api.keychain.set(KEYCHAIN_SERVICE, KEYCHAIN_GEMINI_ACCOUNT, key)
     if (result.ok) {
       set({ geminiKeySet: key.length > 0, error: null })
     } else {
@@ -67,7 +87,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   clearGeminiKey: async () => {
-    const result = await window.api.keychain.delete(KEYCHAIN_SERVICE, KEYCHAIN_GEMINI_ACCOUNT)
+    const api = getDesktopApi()
+    if (!api) {
+      set({ error: missingBridgeError() })
+      return
+    }
+    const result = await api.keychain.delete(KEYCHAIN_SERVICE, KEYCHAIN_GEMINI_ACCOUNT)
     if (result.ok) {
       set({ geminiKeySet: false, error: null })
     } else {
@@ -76,7 +101,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   loadBinaries: async () => {
-    const result = await window.api.tools.status()
+    const api = getDesktopApi()
+    if (!api) {
+      set({ error: missingBridgeError() })
+      return
+    }
+    const result = await api.tools.status()
     if (result.ok) {
       set({ binaries: result.value })
     } else {

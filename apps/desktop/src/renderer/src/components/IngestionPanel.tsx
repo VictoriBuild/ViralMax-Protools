@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@rend
 import { Input } from "@renderer/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@renderer/components/ui/tabs"
 import { ENGINES } from "@renderer/lib/constants"
+import { getDesktopApi } from "@renderer/lib/desktop-api"
 import { summarize } from "@renderer/lib/format"
 import { cn } from "@renderer/lib/utils"
 import { usePipelineStore } from "@renderer/store/usePipelineStore"
@@ -31,7 +32,12 @@ export function IngestionPanel({ onStarted }: IngestionPanelProps) {
   const engine = engineOverride ?? defaultEngine ?? "local"
 
   const pickFile = async (): Promise<void> => {
-    const result = await window.api.dialogs.selectMedia("Select a video or audio file")
+    const api = getDesktopApi()
+    if (!api) {
+      setError("Desktop bridge is unavailable")
+      return
+    }
+    const result = await api.dialogs.selectMedia("Select a video or audio file")
     if (result.ok && result.value.path) {
       setLocalPath(result.value.path)
       setError(null)
